@@ -1,42 +1,41 @@
-use axum::middleware::{from_fn, Next};
-use axum::response::{IntoResponse, Response};
-use axum::{routing::get, Router, Server};
-use hyper::{Body, Request, StatusCode};
-use std::net::SocketAddr;
+use axum::{middleware, routing::get, Extension, Router};
+use axum_demo::{
+    extensions::google_auth::GoogleAuth,
+    handlers::auth::{auth_callback_handler, auth_handler},
+    middlewares::log,
+};
+use dotenvy::{self, dotenv};
+use std::{env, net::SocketAddr, sync::Arc};
+use tracing_subscriber::FmtSubscriber;
 
-async fn hello_world() -> &'static str {
-    "Hello, World!"
+fn load_env() {
+    if let Err(e) = dotenv() {
+        eprintln!("Failed to load .env file: {}", e);
+    }
 }
-
-async fn logging_middleware<B>(
-    req: Request<B>,
-    next: Next<B>,
-) -> Result<impl IntoResponse, (StatusCode, String)> {
-
-    println!("Method: {:?}", req.method());
-    println!("Headers: {:?}", req.headers());
-    println!("Body: {:?}", req.uri());
-
-    let res = next.run(req).await;
-
-    let (parts, body) = res.into_parts();
-    let body_str = hyper::body::to_bytes(body).await.unwrap().to_vec();
-    println!(
-        "Sending response body: {}",
-        String::from_utf8_lossy(&body_str)
-    );
-
-    Ok(Response::from_parts(parts, Body::from(body_str)))
-}
-
 #[tokio::main]
 async fn main() {
+    let subscriber = FmtSubscriber::new();
+
+    tracing::subscriber::set_global_default(subscriber).unwrap();
+    load_env();
+    let google_client_id =
+        env::var("GOOGLE_CLIENT_ID").expect("Missing the GOOGLE_CLIENT_ID environment variable.");
+    let google_client_secret = env::var("GOOGLE_CLIENT_SECRET")
+        .expect("Missing the GOOGLE_CLIENT_SECRET environment variable.");
     let app = Router::new()
-        .route("/", get(hello_world))
-        .layer(from_fn(logging_middleware));
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
-    tracing::info!("Listening on {}", addr);
-    Server::bind(&addr)
+        .route("/auth", get(auth_handler))
+        .route(
+            "/auth-callback",
+            get(auth_callback_handler).layer(middleware::from_fn(log)),
+        )
+        .layer(Extension(Arc::new(GoogleAuth::new(
+            &google_client_id,
+            &google_client_secret,
+        ))));
+
+    let addr = SocketAddr::from(([0, 0, 0, 0], 8000));
+    axum::Server::bind(&addr)
         .serve(app.into_make_service())
         .await
         .unwrap();
