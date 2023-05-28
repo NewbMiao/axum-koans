@@ -8,8 +8,9 @@ use axum::{
 use oauth2::{AuthorizationCode, CsrfToken};
 use serde::Deserialize;
 use serde_json::json;
+use sqlx::{Pool, Postgres};
 
-use crate::extensions::google_auth::GoogleAuth;
+use crate::{extensions::google_auth::GoogleAuth, tables::profile::Profile};
 
 pub async fn auth_handler(Extension(google_auth): Extension<Arc<GoogleAuth>>) -> impl IntoResponse {
     let auth_url = google_auth.auth_url().await;
@@ -23,6 +24,7 @@ pub struct AuthRequest {
 pub async fn auth_callback_handler(
     Extension(google_auth): Extension<Arc<GoogleAuth>>,
     Query(query): Query<AuthRequest>,
+    Extension(db_pool): Extension<Pool<Postgres>>,
 ) -> impl IntoResponse {
     if let Some(token_info) = google_auth
         .get_tokens(
@@ -34,8 +36,13 @@ pub async fn auth_callback_handler(
         let userinfo = google_auth
             .get_user_info(token_info.clone().access_token)
             .await;
-
-        return Json(json!({ "token_info": token_info, "user_info":userinfo}));
+        let profile = Profile::new(
+            userinfo.sub,
+            userinfo.name.unwrap_or_default(),
+            userinfo.email.unwrap_or_default(),
+            token_info.refresh_token,
+        );
+        return Json(json!({ "res": profile.save(db_pool).await.unwrap_or_default()}));
     }
     Json(json!({"error":"failed to get tokens"}))
 }

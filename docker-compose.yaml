@@ -1,0 +1,37 @@
+version: "3.5"
+
+networks:
+  app:
+    driver: bridge
+
+services:
+  # postgres database
+  postgresql:
+    image: bitnami/postgresql:13.6.0
+
+    networks:
+      app:
+        aliases:
+          - database
+
+    environment:
+      POSTGRESQL_DATABASE: axum-demo
+      POSTGRESQL_USERNAME: axum-demo
+      POSTGRESQL_PASSWORD: axum-demo-sec
+      ALLOW_EMPTY_PASSWORD: "yes"
+
+    healthcheck:
+      test: pg_isready -U axum-demo
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    ports:
+      - 15432:5432
+
+    volumes:
+      - "postgresql_data:/bitnami/postgresql"
+
+volumes:
+  postgresql_data:
+    driver: local
