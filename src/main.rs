@@ -1,7 +1,10 @@
 use axum::{middleware, routing::get, Extension, Router};
 use axum_demo::{
-    extensions::google_auth::GoogleAuth,
-    handlers::auth::{auth_callback_handler, auth_handler},
+    extensions::{google_auth::GoogleAuth, keycloak_auth::KeycloakAuth},
+    handlers::{
+        auth::{auth_callback_handler, auth_handler},
+        login::{login_callback_handler, login_handler},
+    },
     middlewares::log,
 };
 use dotenvy::{self, dotenv};
@@ -26,6 +29,11 @@ async fn main() {
     let google_client_secret = env::var("GOOGLE_CLIENT_SECRET")
         .expect("Missing the GOOGLE_CLIENT_SECRET environment variable.");
 
+    let keycloak_client_id = env::var("KEYCLOAK_CLIENT_ID")
+        .expect("Missing the KEYCLOAK_CLIENT_ID environment variable.");
+    let keycloak_client_secret = env::var("KEYCLOAK_CLIENT_SECRET")
+        .expect("Missing the KEYCLOAK_CLIENT_SECRET environment variable.");
+
     let database_url =
         env::var("DATABASE_URL").expect("Missing the DATABASE_URL environment variable.");
 
@@ -36,6 +44,19 @@ async fn main() {
         .await
         .unwrap();
     let app = Router::new()
+        // use keyloak oauth server
+        .route("/login", get(login_handler))
+        .route("/login-callback", get(login_callback_handler))
+        .layer(
+            ServiceBuilder::new()
+                .layer(middleware::from_fn(log))
+                .layer(Extension(Arc::new(KeycloakAuth::new(
+                    &keycloak_client_id,
+                    &keycloak_client_secret,
+                ))))
+                .into_inner(),
+        )
+        // use google oauth server
         .route("/auth", get(auth_handler))
         .route("/auth-callback", get(auth_callback_handler))
         .layer(

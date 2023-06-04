@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Pool, Postgres};
 
@@ -8,6 +9,8 @@ pub struct Profile {
     username: String,
     email: String,
     refresh_token: String,
+    created_date: DateTime<Utc>,
+    updated_date: Option<DateTime<Utc>>,
 }
 
 impl Profile {
@@ -18,16 +21,14 @@ impl Profile {
             username,
             email,
             refresh_token,
+            created_date: Default::default(),
+            updated_date: Default::default(),
         }
     }
     pub async fn find_one(&self, db_pool: Pool<Postgres>) -> Result<Profile, sqlx::Error> {
-        sqlx::query_as!(
-            Profile,
-            "SELECT id, account_id, username, email, refresh_token FROM profiles WHERE id = $1",
-            self.id
-        )
-        .fetch_one(&db_pool)
-        .await
+        sqlx::query_as!(Profile, "SELECT * FROM profiles WHERE id = $1", self.id)
+            .fetch_one(&db_pool)
+            .await
     }
     pub async fn save(&self, db_pool: Pool<Postgres>) -> Result<i32, sqlx::Error> {
         let row = sqlx::query!(

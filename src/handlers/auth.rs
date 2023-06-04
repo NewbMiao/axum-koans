@@ -18,8 +18,8 @@ pub async fn auth_handler(Extension(google_auth): Extension<Arc<GoogleAuth>>) ->
 }
 #[derive(Debug, Deserialize)]
 pub struct AuthRequest {
-    code: String,
-    state: String,
+    pub code: String,
+    pub state: String,
 }
 pub async fn auth_callback_handler(
     Extension(google_auth): Extension<Arc<GoogleAuth>>,
@@ -42,7 +42,8 @@ pub async fn auth_callback_handler(
             userinfo.email.unwrap_or_default(),
             token_info.refresh_token,
         );
-        return Json(json!({ "res": profile.save(db_pool).await.unwrap_or_default()}));
+        profile.save(db_pool).await.unwrap_or_default();
+        return Json(json!({ "google": profile }));
     }
     Json(json!({"error":"failed to get tokens"}))
 }

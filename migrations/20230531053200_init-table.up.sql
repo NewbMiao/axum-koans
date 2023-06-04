@@ -1,3 +1,4 @@
+-- Add up migration script here
 CREATE TABLE IF NOT EXISTS profiles (
     id SERIAL PRIMARY KEY,
     account_id VARCHAR(255) NOT NULL,

@@ -5,20 +5,63 @@ networks:
     driver: bridge
 
 services:
+  keycloak_database:
+    image: bitnami/postgresql:15.3.0
+    networks:
+      app:
+        aliases:
+          - keycloak_database
+    ports:
+      - "25432:5432"
+    volumes:
+      - "postgresql_keycloak_data:/bitnami/postgresql"
+    environment:
+      ALLOW_EMPTY_PASSWORD: yes
+      POSTGRESQL_USERNAME: keycloak
+      POSTGRESQL_DATABASE: keycloak
+      POSTGRESQL_PASSWORD: keycloak-sec
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:21.1.1
+    depends_on:
+      - keycloak_database
+    networks:
+      app:
+        aliases:
+          - keycloak
+    # entrypoint: ["/bin/bash", "-c"]
+    # command:
+    #   - /opt/keycloak/bin/kc.sh start-dev --import-realm
+    command:
+      - start-dev
+      - --import-realm
+    volumes:
+      - ./realm.json:/opt/keycloak/data/import/realm.json
+    environment:
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: 8080
+      KC_HOSTNAME_STRICT_BACKCHANNEL: "true"
+      KC_FEATURES: admin-fine-grained-authz,token-exchange
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak_database:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak-sec
+      KEYCLOAK_CREATE_ADMIN_USER: true
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin-sec
+    ports:
+      - 8080:8080
   # postgres database
   postgresql:
-    image: bitnami/postgresql:13.6.0
-
+    image: bitnami/postgresql:15.3.0
     networks:
       app:
         aliases:
           - database
-
     environment:
       POSTGRESQL_DATABASE: axum-demo
       POSTGRESQL_USERNAME: axum-demo
       POSTGRESQL_PASSWORD: axum-demo-sec
-      ALLOW_EMPTY_PASSWORD: "yes"
 
     healthcheck:
       test: pg_isready -U axum-demo
@@ -34,4 +77,6 @@ services:
 
 volumes:
   postgresql_data:
+    driver: local
+  postgresql_keycloak_data:
     driver: local
