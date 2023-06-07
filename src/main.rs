@@ -11,7 +11,8 @@ use dotenvy::{self, dotenv};
 use sqlx::postgres::PgPoolOptions;
 use std::{env, net::SocketAddr, sync::Arc};
 use tower::ServiceBuilder;
-use tracing_subscriber::FmtSubscriber;
+use tower_http::trace::{self, TraceLayer};
+use tracing::Level;
 
 fn load_env() {
     if let Err(e) = dotenv() {
@@ -20,9 +21,6 @@ fn load_env() {
 }
 #[tokio::main]
 async fn main() {
-    let subscriber = FmtSubscriber::new();
-
-    tracing::subscriber::set_global_default(subscriber).unwrap();
     load_env();
     let google_client_id =
         env::var("GOOGLE_CLIENT_ID").expect("Missing the GOOGLE_CLIENT_ID environment variable.");
@@ -43,31 +41,52 @@ async fn main() {
         .connect(&database_url)
         .await
         .unwrap();
+    // Start configuring a `fmt` subscriber
+    let subscriber = tracing_subscriber::fmt()
+        .compact()
+        .with_max_level(tracing::Level::INFO)
+        .with_file(true)
+        .with_line_number(true)
+        .with_thread_ids(true)
+        .with_target(false)
+        // .json()
+        .finish();
+    tracing::subscriber::set_global_default(subscriber).unwrap();
     let app = Router::new()
-        // use keyloak oauth server
-        .route("/login", get(login_handler))
-        .route("/login-callback", get(login_callback_handler))
-        .layer(
-            ServiceBuilder::new()
-                .layer(middleware::from_fn(log))
-                .layer(Extension(Arc::new(KeycloakAuth::new(
-                    &keycloak_client_id,
-                    &keycloak_client_secret,
-                ))))
-                .into_inner(),
+        .nest(
+            "/keycloak", // use keyloak oauth server
+            Router::new()
+                .route("/login", get(login_handler))
+                .route("/login-callback", get(login_callback_handler))
+                .layer(
+                    ServiceBuilder::new()
+                        .layer(Extension(Arc::new(KeycloakAuth::new(
+                            &keycloak_client_id,
+                            &keycloak_client_secret,
+                        ))))
+                        .into_inner(),
+                ),
         )
-        // use google oauth server
-        .route("/auth", get(auth_handler))
-        .route("/auth-callback", get(auth_callback_handler))
+        .nest(
+            "/google", // use google oauth server
+            Router::new()
+                .route("/auth", get(auth_handler))
+                .route("/auth-callback", get(auth_callback_handler)),
+        )
         .layer(
             ServiceBuilder::new()
-                .layer(middleware::from_fn(log))
                 .layer(Extension(Arc::new(GoogleAuth::new(
                     &google_client_id,
                     &google_client_secret,
                 ))))
                 .layer(Extension(db_pool))
                 .into_inner(),
+        )
+        .layer(middleware::from_fn(log))
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
+                .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
         );
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 8000));

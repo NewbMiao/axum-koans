@@ -37,7 +37,7 @@ impl GoogleAuth {
         let revocation_url =
             RevocationUrl::new("https://oauth2.googleapis.com/revoke".to_string()).unwrap();
         let redirect_url =
-            RedirectUrl::new("http://localhost:8000/auth-callback".to_string()).unwrap();
+            RedirectUrl::new("http://localhost:8000/google/auth-callback".to_string()).unwrap();
         let client = BasicClient::new(
             ClientId::new(client_id.to_string()),
             Some(ClientSecret::new(client_secret.to_string())),

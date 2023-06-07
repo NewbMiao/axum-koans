@@ -131,7 +131,7 @@ async fn main() {
         .route("/", post(hello_world))
         .layer(middleware::from_fn(log_request_response));
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
         .await

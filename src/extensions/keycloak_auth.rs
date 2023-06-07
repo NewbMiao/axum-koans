@@ -57,7 +57,7 @@ impl KeycloakAuth {
         )
         .unwrap();
         let redirect_url =
-            RedirectUrl::new("http://localhost:8000/login-callback".to_string()).unwrap();
+            RedirectUrl::new("http://localhost:8000/keycloak/login-callback".to_string()).unwrap();
         let client = BasicClient::new(client_id, Some(client_secret), auth_url, Some(token_url))
             .set_redirect_uri(redirect_url);
 

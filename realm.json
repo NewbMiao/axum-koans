@@ -268,7 +268,7 @@
       "description": "",
       "rootUrl": "http://localhost:8000",
       "adminUrl": "http://localhost:8000",
-      "baseUrl": "/login",
+      "baseUrl": "/keycloak/login",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
