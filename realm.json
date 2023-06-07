@@ -1,6 +1,6 @@
 {
   "id": "bb4bf8bc-e725-478f-9002-1da7277e2969",
-  "realm": "axum-demo",
+  "realm": "axum-koans",
   "notBefore": 0,
   "defaultSignatureAlgorithm": "RS256",
   "revokeRefreshToken": false,
@@ -45,7 +45,7 @@
   "failureFactor": 30,
   "defaultRole": {
     "id": "b7936ab0-5c9b-4c1f-8fcf-6dd058e374fd",
-    "name": "default-roles-axum-demo",
+    "name": "default-roles-axum-koans",
     "description": "${role_default-roles}",
     "composite": true,
     "clientRole": false,
@@ -94,11 +94,11 @@
     {
       "id": "586fb9e8-be81-4553-a75e-fb907e5d745a",
       "createdTimestamp": 1685867284893,
-      "username": "service-account-axum-demo",
+      "username": "service-account-axum-koans",
       "enabled": true,
       "totp": false,
       "emailVerified": false,
-      "serviceAccountClientId": "axum-demo",
+      "serviceAccountClientId": "axum-koans",
       "disableableCredentialTypes": [],
       "requiredActions": [],
       "notBefore": 0
@@ -129,13 +129,13 @@
       "clientId": "account",
       "name": "${client_account}",
       "rootUrl": "${authBaseUrl}",
-      "baseUrl": "/realms/axum-demo/account/",
+      "baseUrl": "/realms/axum-koans/account/",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "/realms/axum-demo/account/*"
+        "/realms/axum-koans/account/*"
       ],
       "webOrigins": [],
       "notBefore": 0,
@@ -173,13 +173,13 @@
       "clientId": "account-console",
       "name": "${client_account-console}",
       "rootUrl": "${authBaseUrl}",
-      "baseUrl": "/realms/axum-demo/account/",
+      "baseUrl": "/realms/axum-koans/account/",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "/realms/axum-demo/account/*"
+        "/realms/axum-koans/account/*"
       ],
       "webOrigins": [],
       "notBefore": 0,
@@ -263,7 +263,7 @@
     },
     {
       "id": "a48bb7ea-0f29-445b-8d5c-c311f20f1d61",
-      "clientId": "axum-demo",
+      "clientId": "axum-koans",
       "name": "",
       "description": "",
       "rootUrl": "http://localhost:8000",
@@ -487,13 +487,13 @@
         "policies": [
           {
             "id": "7f132011-1be7-467f-93f8-3d5b5c03492f",
-            "name": "axum-demo-token-exchange-policy",
+            "name": "axum-koans-token-exchange-policy",
             "description": "",
             "type": "client",
             "logic": "POSITIVE",
             "decisionStrategy": "UNANIMOUS",
             "config": {
-              "clients": "[\"axum-demo\"]"
+              "clients": "[\"axum-koans\"]"
             }
           },
           {
@@ -572,7 +572,7 @@
             "config": {
               "resources": "[\"client.resource.a48bb7ea-0f29-445b-8d5c-c311f20f1d61\"]",
               "scopes": "[\"token-exchange\"]",
-              "applyPolicies": "[\"axum-demo-token-exchange-policy\"]"
+              "applyPolicies": "[\"axum-koans-token-exchange-policy\"]"
             }
           },
           {
@@ -585,7 +585,7 @@
             "config": {
               "resources": "[\"idp.resource.955ac868-8fbf-44ad-80e5-41c5e9d44953\"]",
               "scopes": "[\"token-exchange\"]",
-              "applyPolicies": "[\"axum-demo-token-exchange-policy\"]"
+              "applyPolicies": "[\"axum-koans-token-exchange-policy\"]"
             }
           }
         ],
@@ -627,13 +627,13 @@
       "clientId": "security-admin-console",
       "name": "${client_security-admin-console}",
       "rootUrl": "${authAdminUrl}",
-      "baseUrl": "/admin/axum-demo/console/",
+      "baseUrl": "/admin/axum-koans/console/",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "/admin/axum-demo/console/*"
+        "/admin/axum-koans/console/*"
       ],
       "webOrigins": [
         "+"
@@ -1243,7 +1243,7 @@
         "offlineAccess": "true",
         "userIp": "false",
         "clientSecret": "**********",
-        "clientId": "460945802170-to4anqvqf2rvp3a8pa27gevr42njiu6l.apps.googleusercontent.com"
+        "clientId": "**********.apps.googleusercontent.com"
       }
     }
   ],

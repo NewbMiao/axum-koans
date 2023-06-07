@@ -59,12 +59,12 @@ services:
         aliases:
           - database
     environment:
-      POSTGRESQL_DATABASE: axum-demo
-      POSTGRESQL_USERNAME: axum-demo
-      POSTGRESQL_PASSWORD: axum-demo-sec
+      POSTGRESQL_DATABASE: axum-koans
+      POSTGRESQL_USERNAME: axum-koans
+      POSTGRESQL_PASSWORD: axum-koans-sec
 
     healthcheck:
-      test: pg_isready -U axum-demo
+      test: pg_isready -U axum-koans
       interval: 10s
       timeout: 5s
       retries: 5

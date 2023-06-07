@@ -1,8 +1,15 @@
 use axum::{routing::get, Router};
 use tower_http::trace::{self, TraceLayer};
-use tracing::Level;
+use tracing::{event, instrument, Level};
 
+#[instrument]
 async fn handler() -> &'static str {
+    event!(Level::INFO, "handler event");
+    // let span = info_span!("handler");
+
+    // `enter` 返回一个 RAII ，当其被 drop 时，将自动结束该 span
+    // let _enter = span.enter();
+    event!(Level::INFO, "something happened inside handler");
     "Hello, world!"
 }
 
@@ -11,7 +18,7 @@ async fn main() {
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
         .with_ansi(false)
-        .json()
+        // .json()
         .init();
 
     let app = Router::new().route("/", get(handler)).layer(

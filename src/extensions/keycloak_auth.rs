@@ -49,11 +49,11 @@ impl KeycloakAuth {
         let client_secret = ClientSecret::new(client_secret.to_string());
 
         let token_url = TokenUrl::new(
-            "http://localhost:8080/realms/axum-demo/protocol/openid-connect/token".to_string(),
+            "http://localhost:8080/realms/axum-koans/protocol/openid-connect/token".to_string(),
         )
         .unwrap();
         let auth_url = AuthUrl::new(
-            "http://localhost:8080/realms/axum-demo/protocol/openid-connect/auth".to_string(),
+            "http://localhost:8080/realms/axum-koans/protocol/openid-connect/auth".to_string(),
         )
         .unwrap();
         let redirect_url =
@@ -116,7 +116,7 @@ impl KeycloakAuth {
         requested_issuer: String,
     ) -> TokenExchangeResponse {
         // 从 Keycloak 的令牌响应中获取访问令牌
-        let token_url = "http://localhost:8080/realms/axum-demo/protocol/openid-connect/token";
+        let token_url = "http://localhost:8080/realms/axum-koans/protocol/openid-connect/token";
         let userinfo_response = Client::new()
             .post(token_url)
             .form(&[
@@ -141,7 +141,7 @@ impl KeycloakAuth {
     }
     pub async fn get_user_info(&self, token: String) -> UserInfo {
         let user_info_url =
-            "http://localhost:8080/realms/axum-demo/protocol/openid-connect/userinfo";
+            "http://localhost:8080/realms/axum-koans/protocol/openid-connect/userinfo";
         let res = Client::new()
             .get(user_info_url)
             .bearer_auth(token)
