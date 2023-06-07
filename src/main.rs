@@ -1,5 +1,5 @@
 use axum::{middleware, routing::get, Extension, Router};
-use axum_demo::{
+use axum_koans::{
     extensions::{google_auth::GoogleAuth, keycloak_auth::KeycloakAuth},
     handlers::{
         auth::{auth_callback_handler, auth_handler},
@@ -82,12 +82,12 @@ async fn main() {
                 .layer(Extension(db_pool))
                 .into_inner(),
         )
-        .layer(middleware::from_fn(log))
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
                 .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
-        );
+        )
+        .layer(middleware::from_fn(log));
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 8000));
     axum::Server::bind(&addr)

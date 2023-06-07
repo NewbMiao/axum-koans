@@ -3,6 +3,7 @@ use axum::http::{Request, Response, StatusCode};
 use axum::middleware::Next;
 use axum::response::IntoResponse;
 use hyper::Body;
+use tracing::info;
 
 pub async fn log(
     req: Request<axum::body::Body>,
@@ -66,14 +67,14 @@ where
     if let Ok(body) = std::str::from_utf8(&bytes) {
         if log && !body.is_empty() {
             if body.len() > 2000 {
-                println!(
+                info!(
                     "{} for req: {} with body: {}...",
                     direction,
                     path,
                     &body[0..2000]
                 );
             } else {
-                println!("{} for req: {} with body: {}", direction, path, body);
+                info!("{} for req: {} with body: {}", direction, path, body);
             }
         }
     }
