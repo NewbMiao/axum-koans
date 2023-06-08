@@ -10,7 +10,7 @@ use serde::Deserialize;
 use serde_json::json;
 use sqlx::{Pool, Postgres};
 
-use crate::{extensions::google_auth::GoogleAuth, tables::profile::Profile};
+use crate::{database::profile::Profile, extensions::google_auth::GoogleAuth};
 
 pub async fn auth_handler(Extension(google_auth): Extension<Arc<GoogleAuth>>) -> impl IntoResponse {
     let auth_url = google_auth.auth_url().await;

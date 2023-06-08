@@ -41,6 +41,14 @@ else
     echo "typos already installed"
 fi
 
+# Check if sqlx-cli is installed
+if ! command -v sqlx &>/dev/null; then
+    echo "sqlx-cli not found. Installing..."
+    cargo install sqlx-cli --no-default-features --features native-tls,postgres --locked
+else
+    echo "sqlx-cli already installed"
+fi
+
 # Install pre-commit hooks
 echo "Installing pre-commit hooks..."
 pre-commit install

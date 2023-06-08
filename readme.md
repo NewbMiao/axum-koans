@@ -45,7 +45,7 @@
 docker-compose up
 # database migration
 # install database migrations tool sqx
-cargo install sqlx-cli --no-default-features --features native-tls,postgres
+cargo install sqlx-cli --no-default-features --features native-tls,postgres --locked
 sqlx migrate run
 ```
 

@@ -12,7 +12,6 @@ pub struct Profile {
     created_date: DateTime<Utc>,
     updated_date: Option<DateTime<Utc>>,
 }
-
 impl Profile {
     pub fn new(account_id: String, username: String, email: String, refresh_token: String) -> Self {
         Self {

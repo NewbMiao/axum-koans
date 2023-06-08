@@ -1,5 +1,6 @@
 use axum::{middleware, routing::get, Extension, Router};
 use axum_koans::{
+    database::get_db_pool,
     extensions::{google_auth::GoogleAuth, keycloak_auth::KeycloakAuth},
     handlers::{
         auth::{auth_callback_handler, auth_handler},
@@ -8,7 +9,6 @@ use axum_koans::{
     middlewares::log,
 };
 use dotenvy::{self, dotenv};
-use sqlx::postgres::PgPoolOptions;
 use std::{env, net::SocketAddr, sync::Arc};
 use tower::ServiceBuilder;
 use tower_http::trace::{self, TraceLayer};
@@ -36,11 +36,7 @@ async fn main() {
         env::var("DATABASE_URL").expect("Missing the DATABASE_URL environment variable.");
 
     // db pool
-    let db_pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&database_url)
-        .await
-        .unwrap();
+    let db_pool = get_db_pool(database_url).await.unwrap();
     // Start configuring a `fmt` subscriber
     let subscriber = tracing_subscriber::fmt()
         .compact()
