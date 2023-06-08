@@ -25,7 +25,7 @@ pub async fn log(
     let (req_parts, req_body) = req.into_parts();
 
     // Print request
-    let bytes = buffer_and_print("request", path, req_body, no_log).await?;
+    let bytes = buffer_and_print("Request", path, req_body, no_log).await?;
     let req = Request::from_parts(req_parts, hyper::Body::from(bytes));
 
     let res = next.run(req).await;
@@ -33,7 +33,7 @@ pub async fn log(
     let (mut res_parts, res_body) = res.into_parts();
 
     // Print response
-    let bytes = buffer_and_print("response", path, res_body, no_log).await?;
+    let bytes = buffer_and_print("Response", path, res_body, no_log).await?;
 
     // When your encoding is chunked there can be problems without removing the header
     res_parts.headers.remove("transfer-encoding");
@@ -48,7 +48,7 @@ async fn buffer_and_print<B>(
     direction: &str,
     path: &str,
     body: B,
-    log: bool,
+    no_log: bool,
 ) -> Result<Bytes, (StatusCode, String)>
 where
     B: axum::body::HttpBody<Data = Bytes>,
@@ -65,16 +65,16 @@ where
     };
 
     if let Ok(body) = std::str::from_utf8(&bytes) {
-        if log && !body.is_empty() {
+        if !no_log && !body.is_empty() {
             if body.len() > 2000 {
                 info!(
-                    "{} for req: {} with body: {}...",
+                    "{} for {} with body: {}...",
                     direction,
                     path,
                     &body[0..2000]
                 );
             } else {
-                info!("{} for req: {} with body: {}", direction, path, body);
+                info!("{} for {} with body: {}", direction, path, body);
             }
         }
     }

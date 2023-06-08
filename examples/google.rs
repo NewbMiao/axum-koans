@@ -10,9 +10,10 @@ use reqwest::Url;
 use std::env;
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpListener;
+use tracing::error;
 fn load_env() {
     if let Err(e) = dotenv() {
-        eprintln!("Failed to load .env file: {}", e);
+        error!("Failed to load .env file: {}", e);
     }
 }
 fn main() {

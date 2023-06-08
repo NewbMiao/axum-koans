@@ -9,14 +9,17 @@ use axum_koans::{
     middlewares::log,
 };
 use dotenvy::{self, dotenv};
-use std::{env, net::SocketAddr, sync::Arc};
+use std::{env, net::SocketAddr, sync::Arc, time::Duration};
 use tower::ServiceBuilder;
-use tower_http::trace::{self, TraceLayer};
-use tracing::Level;
+use tower_http::{
+    classify::ServerErrorsFailureClass,
+    trace::{self, TraceLayer},
+};
+use tracing::{error, Level, Span};
 
 fn load_env() {
     if let Err(e) = dotenv() {
-        eprintln!("Failed to load .env file: {}", e);
+        error!("Failed to load .env file: {}", e);
     }
 }
 #[tokio::main]
@@ -41,7 +44,7 @@ async fn main() {
     let subscriber = tracing_subscriber::fmt()
         .compact()
         .with_max_level(tracing::Level::INFO)
-        .with_file(true)
+        .with_file(false)
         .with_line_number(true)
         .with_thread_ids(true)
         .with_target(false)
@@ -81,7 +84,15 @@ async fn main() {
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
-                .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
+                .on_response(trace::DefaultOnResponse::new().level(Level::INFO))
+                .on_failure(
+                    |err: ServerErrorsFailureClass, latency: Duration, span: &Span| {
+                        error!(
+                            "something went wrong: error={:?} latency={:?} span={:?}",
+                            err, latency, span
+                        )
+                    },
+                ),
         )
         .layer(middleware::from_fn(log));
 

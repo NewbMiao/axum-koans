@@ -10,6 +10,7 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 use tokio::sync::Mutex;
+use tracing::error;
 
 pub struct KeycloakAuth {
     client_secret: String,
@@ -91,22 +92,20 @@ impl KeycloakAuth {
         csrf_token: CsrfToken,
     ) -> Option<TokenInfo> {
         let mut hmap = self.csrf_pkces.clone().lock_owned().await;
-        // println!("{:?}", hmap);
-        let pkce_verifier = hmap.remove(&csrf_token.secret().to_string()).unwrap();
-        let res = self
-            .client
-            .exchange_code(code)
-            .set_pkce_verifier(PkceCodeVerifier::new(pkce_verifier.secret().to_string()))
-            .request_async(async_http_client)
-            .await;
-        match res {
+        let mut res = self.client.exchange_code(code);
+
+        if let Some(pkce_verifier) = hmap.remove(&csrf_token.secret().to_string()) {
+            res = res.set_pkce_verifier(PkceCodeVerifier::new(pkce_verifier.secret().to_string()))
+        }
+
+        match res.request_async(async_http_client).await {
             Ok(res) => {
                 return Some(TokenInfo {
                     refresh_token: res.refresh_token().unwrap().secret().to_string(),
                     access_token: res.access_token().secret().to_string(),
                 });
             }
-            Err(err) => eprintln!("got error in callback: {}", err),
+            Err(err) => error!("got error in callback: {}", err),
         }
         None
     }
