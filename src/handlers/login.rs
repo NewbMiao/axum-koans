@@ -9,7 +9,10 @@ use oauth2::{AuthorizationCode, CsrfToken};
 use serde_json::json;
 use sqlx::{Pool, Postgres};
 
-use crate::extensions::{google_auth::GoogleAuth, keycloak_auth::KeycloakAuth, KeyCloakIdp};
+use crate::{
+    errors::ServerError,
+    extensions::{google_auth::GoogleAuth, keycloak_auth::KeycloakAuth, KeyCloakIdp},
+};
 
 use super::AuthRequest;
 
@@ -25,27 +28,25 @@ pub async fn login_callback_handler(
     Extension(keycloak_auth): Extension<Arc<KeycloakAuth>>,
     Query(query): Query<AuthRequest>,
     Extension(_db_pool): Extension<Pool<Postgres>>,
-) -> impl IntoResponse {
-    if let Some(token_info) = keycloak_auth
+) -> Result<impl IntoResponse, ServerError> {
+    let token_info = keycloak_auth
         .get_tokens(
             AuthorizationCode::new(query.code),
             CsrfToken::new(query.state),
         )
-        .await
-    {
-        let userinfo = keycloak_auth
-            .get_user_info(token_info.clone().access_token)
-            .await;
-        let google_tokens = keycloak_auth
-            .token_exchange(
-                token_info.clone().access_token,
-                KeyCloakIdp::Google.as_str(),
-            )
-            .await;
-        let google_info = google_auth.get_user_info(google_tokens.access_token).await;
+        .await?;
+    let userinfo = keycloak_auth
+        .get_user_info(token_info.clone().access_token)
+        .await?;
+    let google_tokens = keycloak_auth
+        .token_exchange(
+            token_info.clone().access_token,
+            KeyCloakIdp::Google.as_str(),
+        )
+        .await?;
+    let google_info = google_auth
+        .get_user_info(google_tokens.access_token)
+        .await?;
 
-        return Json(json!({ "google": google_info, "keycloak":userinfo }));
-    }
-
-    Json(json!({"error":"failed to get tokens"}))
+    Ok(Json(json!({ "google": google_info, "keycloak":userinfo })))
 }

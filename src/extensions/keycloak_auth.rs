@@ -10,9 +10,8 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 use tokio::sync::Mutex;
-use tracing::error;
 
-use crate::config::OauthClientConfig;
+use crate::{config::OauthClientConfig, errors::ServerError};
 
 use super::KeyCloakIdp;
 
@@ -95,7 +94,7 @@ impl KeycloakAuth {
         &self,
         code: AuthorizationCode,
         csrf_token: CsrfToken,
-    ) -> Option<TokenInfo> {
+    ) -> Result<TokenInfo, ServerError> {
         let mut hmap = self.csrf_pkces.clone().lock_owned().await;
         let mut res = self.client.exchange_code(code);
 
@@ -103,22 +102,17 @@ impl KeycloakAuth {
             res = res.set_pkce_verifier(PkceCodeVerifier::new(pkce_verifier.secret().to_string()))
         }
 
-        match res.request_async(async_http_client).await {
-            Ok(res) => {
-                return Some(TokenInfo {
-                    refresh_token: res.refresh_token().unwrap().secret().to_string(),
-                    access_token: res.access_token().secret().to_string(),
-                });
-            }
-            Err(err) => error!("got error in callback: {}", err),
-        }
-        None
+        let res = res.request_async(async_http_client).await?;
+        Ok(TokenInfo {
+            refresh_token: res.refresh_token().unwrap().secret().to_string(),
+            access_token: res.access_token().secret().to_string(),
+        })
     }
     pub async fn token_exchange(
         &self,
         access_token: String,
         requested_issuer: &str,
-    ) -> TokenExchangeResponse {
+    ) -> Result<TokenExchangeResponse, ServerError> {
         let token_url =
             get_url_with_issuer(&self.config.issuer_url, "/protocol/openid-connect/token");
         let response = Client::new()
@@ -138,12 +132,10 @@ impl KeycloakAuth {
                 ("requested_issuer", requested_issuer),
             ])
             .send()
-            .await
-            .unwrap();
-        let response_text = response.text().await.unwrap();
-        from_str(&response_text).unwrap()
+            .await?;
+        Ok(from_str(&response.text().await?)?)
     }
-    pub async fn get_user_info(&self, token: String) -> UserInfo {
+    pub async fn get_user_info(&self, token: String) -> Result<UserInfo, ServerError> {
         let user_info_url =
             get_url_with_issuer(&self.config.issuer_url, "/protocol/openid-connect/userinfo");
         let res = Client::new()
@@ -151,10 +143,9 @@ impl KeycloakAuth {
             .bearer_auth(token)
             .header(CONTENT_TYPE, HeaderValue::from_static("application/json"))
             .send()
-            .await
-            .unwrap();
-        let text = res.text().await.unwrap();
-        from_str(&text).unwrap()
+            .await?;
+
+        Ok(from_str(&res.text().await?)?)
     }
 }
 

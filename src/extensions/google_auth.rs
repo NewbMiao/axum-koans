@@ -10,9 +10,8 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 use tokio::sync::Mutex;
-use tracing::error;
 
-use crate::config::OauthClientConfig;
+use crate::{config::OauthClientConfig, errors::ServerError};
 
 pub struct GoogleAuth {
     client: BasicClient,
@@ -84,35 +83,28 @@ impl GoogleAuth {
         &self,
         code: AuthorizationCode,
         csrf_token: CsrfToken,
-    ) -> Option<TokenInfo> {
+    ) -> Result<TokenInfo, ServerError> {
         let mut hmap = self.csrf_pkces.clone().lock_owned().await;
         let mut res = self.client.exchange_code(code);
 
         if let Some(pkce_verifier) = hmap.remove(&csrf_token.secret().to_string()) {
             res = res.set_pkce_verifier(PkceCodeVerifier::new(pkce_verifier.secret().to_string()))
         }
+        let res = res.request_async(async_http_client).await?;
 
-        match res.request_async(async_http_client).await {
-            Ok(res) => {
-                return Some(TokenInfo {
-                    refresh_token: res.refresh_token().unwrap().secret().to_string(),
-                    access_token: res.access_token().secret().to_string(),
-                });
-            }
-            Err(err) => error!("got error in callback: {}", err),
-        }
-        None
+        Ok(TokenInfo {
+            refresh_token: res.refresh_token().unwrap().secret().to_string(),
+            access_token: res.access_token().secret().to_string(),
+        })
     }
-    pub async fn get_user_info(&self, token: String) -> Userinfo {
+    pub async fn get_user_info(&self, token: String) -> Result<Userinfo, ServerError> {
         let user_info_url = "https://www.googleapis.com/oauth2/v3/userinfo";
         let res = Client::new()
             .get(user_info_url)
             .bearer_auth(token)
             .header(CONTENT_TYPE, HeaderValue::from_static("application/json"))
             .send()
-            .await
-            .unwrap();
-        let text = res.text().await.unwrap();
-        from_str(&text).unwrap()
+            .await?;
+        Ok(from_str(&res.text().await?)?)
     }
 }
