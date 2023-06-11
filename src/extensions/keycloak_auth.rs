@@ -12,9 +12,14 @@ use serde_json::from_str;
 use tokio::sync::Mutex;
 use tracing::error;
 
+use crate::config::OauthClientConfig;
+
+use super::KeyCloakIdp;
+
 pub struct KeycloakAuth {
-    client_secret: String,
+    config: OauthClientConfig,
     client: BasicClient,
+
     csrf_pkces: Arc<Mutex<HashMap<String, PkceCodeVerifier>>>,
 }
 #[derive(Deserialize, Serialize, Clone, Debug)]
@@ -44,38 +49,38 @@ pub struct UserInfo {
 }
 
 impl KeycloakAuth {
-    pub fn new(client_id: &str, client_secret: &str) -> Self {
-        let client_secret_string = client_secret.to_string();
-        let client_id = ClientId::new(client_id.to_string());
-        let client_secret = ClientSecret::new(client_secret.to_string());
+    pub fn new(config: OauthClientConfig) -> Self {
+        let config_clone = config.clone();
+        let client_id = ClientId::new(config.client_id);
+        let client_secret = ClientSecret::new(config.client_secret);
 
-        let token_url = TokenUrl::new(
-            "http://localhost:8080/realms/axum-koans/protocol/openid-connect/token".to_string(),
-        )
+        let token_url = TokenUrl::new(get_url_with_issuer(
+            &config.issuer_url,
+            "/protocol/openid-connect/token",
+        ))
         .unwrap();
-        let auth_url = AuthUrl::new(
-            "http://localhost:8080/realms/axum-koans/protocol/openid-connect/auth".to_string(),
-        )
+        let auth_url = AuthUrl::new(get_url_with_issuer(
+            &config.issuer_url,
+            "/protocol/openid-connect/auth",
+        ))
         .unwrap();
-        let redirect_url =
-            RedirectUrl::new("http://localhost:8000/keycloak/login-callback".to_string()).unwrap();
+        let redirect_url = RedirectUrl::new(config.redirect_url).unwrap();
         let client = BasicClient::new(client_id, Some(client_secret), auth_url, Some(token_url))
             .set_redirect_uri(redirect_url);
 
         Self {
-            client_secret: client_secret_string,
+            config: config_clone,
             client,
             csrf_pkces: Arc::new(Mutex::new(HashMap::default())),
         }
     }
-    pub async fn auth_url(&self) -> Url {
+    pub async fn auth_url(&self, kc_idp_hint: KeyCloakIdp) -> Url {
         let pkce_challenge = PkceCodeChallenge::new_random_sha256();
         let (url, csrf_token) = self
             .client
             .authorize_url(CsrfToken::new_random)
             .add_scope(Scope::new("openid".to_string()))
-            .add_extra_param("prompt", "consent")
-            .add_extra_param("access_type", "offline")
+            .add_extra_param("kc_idp_hint", kc_idp_hint.as_str()) // use google directly
             .set_pkce_challenge(pkce_challenge.0.clone())
             .url();
         let csrf_token_key = csrf_token.secret().to_string();
@@ -112,11 +117,11 @@ impl KeycloakAuth {
     pub async fn token_exchange(
         &self,
         access_token: String,
-        requested_issuer: String,
+        requested_issuer: &str,
     ) -> TokenExchangeResponse {
-        // 从 Keycloak 的令牌响应中获取访问令牌
-        let token_url = "http://localhost:8080/realms/axum-koans/protocol/openid-connect/token";
-        let userinfo_response = Client::new()
+        let token_url =
+            get_url_with_issuer(&self.config.issuer_url, "/protocol/openid-connect/token");
+        let response = Client::new()
             .post(token_url)
             .form(&[
                 (
@@ -124,23 +129,23 @@ impl KeycloakAuth {
                     "urn:ietf:params:oauth:grant-type:token-exchange",
                 ),
                 ("subject_token", &access_token),
-                ("client_id", self.client.client_id()),
-                ("client_secret", &self.client_secret),
+                ("client_id", &self.config.client_id),
+                ("client_secret", &self.config.client_secret),
                 (
                     "requested_token_type",
                     "urn:ietf:params:oauth:token-type:access_token",
                 ),
-                ("requested_issuer", &requested_issuer),
+                ("requested_issuer", requested_issuer),
             ])
             .send()
             .await
             .unwrap();
-        let response_text = userinfo_response.text().await.unwrap();
+        let response_text = response.text().await.unwrap();
         from_str(&response_text).unwrap()
     }
     pub async fn get_user_info(&self, token: String) -> UserInfo {
         let user_info_url =
-            "http://localhost:8080/realms/axum-koans/protocol/openid-connect/userinfo";
+            get_url_with_issuer(&self.config.issuer_url, "/protocol/openid-connect/userinfo");
         let res = Client::new()
             .get(user_info_url)
             .bearer_auth(token)
@@ -151,4 +156,8 @@ impl KeycloakAuth {
         let text = res.text().await.unwrap();
         from_str(&text).unwrap()
     }
+}
+
+fn get_url_with_issuer(issue_url: &str, path: &str) -> String {
+    format!("{issue_url}{path}")
 }

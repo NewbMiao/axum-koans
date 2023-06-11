@@ -12,6 +12,8 @@ use serde_json::from_str;
 use tokio::sync::Mutex;
 use tracing::error;
 
+use crate::config::OauthClientConfig;
+
 pub struct GoogleAuth {
     client: BasicClient,
     csrf_pkces: Arc<Mutex<HashMap<String, PkceCodeVerifier>>>,
@@ -30,18 +32,17 @@ pub struct Userinfo {
 }
 
 impl GoogleAuth {
-    pub fn new(client_id: &str, client_secret: &str) -> Self {
+    pub fn new(config: OauthClientConfig) -> Self {
         let auth_url =
             AuthUrl::new("https://accounts.google.com/o/oauth2/v2/auth".to_string()).unwrap();
         let token_url =
             TokenUrl::new("https://www.googleapis.com/oauth2/v3/token".to_string()).unwrap();
         let revocation_url =
             RevocationUrl::new("https://oauth2.googleapis.com/revoke".to_string()).unwrap();
-        let redirect_url =
-            RedirectUrl::new("http://localhost:8000/google/auth-callback".to_string()).unwrap();
+        let redirect_url = RedirectUrl::new(config.redirect_url).unwrap();
         let client = BasicClient::new(
-            ClientId::new(client_id.to_string()),
-            Some(ClientSecret::new(client_secret.to_string())),
+            ClientId::new(config.client_id),
+            Some(ClientSecret::new(config.client_secret)),
             auth_url,
             Some(token_url),
         )

@@ -9,14 +9,14 @@ use oauth2::{AuthorizationCode, CsrfToken};
 use serde_json::json;
 use sqlx::{Pool, Postgres};
 
-use crate::extensions::{google_auth::GoogleAuth, keycloak_auth::KeycloakAuth};
+use crate::extensions::{google_auth::GoogleAuth, keycloak_auth::KeycloakAuth, KeyCloakIdp};
 
-use super::auth::AuthRequest;
+use super::AuthRequest;
 
 pub async fn login_handler(
     Extension(keycloak_auth): Extension<Arc<KeycloakAuth>>,
 ) -> impl IntoResponse {
-    let authorize_url = keycloak_auth.auth_url().await;
+    let authorize_url = keycloak_auth.auth_url(KeyCloakIdp::Google).await;
     Redirect::to(authorize_url.as_str())
 }
 
@@ -37,7 +37,10 @@ pub async fn login_callback_handler(
             .get_user_info(token_info.clone().access_token)
             .await;
         let google_tokens = keycloak_auth
-            .token_exchange(token_info.clone().access_token, "google".to_string())
+            .token_exchange(
+                token_info.clone().access_token,
+                KeyCloakIdp::Google.as_str(),
+            )
             .await;
         let google_info = google_auth.get_user_info(google_tokens.access_token).await;
 

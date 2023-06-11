@@ -6,21 +6,18 @@ use axum::{
     Extension, Json,
 };
 use oauth2::{AuthorizationCode, CsrfToken};
-use serde::Deserialize;
 use serde_json::json;
 use sqlx::{Pool, Postgres};
 
 use crate::{database::profile::Profile, extensions::google_auth::GoogleAuth};
 
+use super::AuthRequest;
+
 pub async fn auth_handler(Extension(google_auth): Extension<Arc<GoogleAuth>>) -> impl IntoResponse {
     let auth_url = google_auth.auth_url().await;
     Redirect::to(auth_url.as_str())
 }
-#[derive(Debug, Deserialize)]
-pub struct AuthRequest {
-    pub code: String,
-    pub state: String,
-}
+
 pub async fn auth_callback_handler(
     Extension(google_auth): Extension<Arc<GoogleAuth>>,
     Query(query): Query<AuthRequest>,
@@ -40,10 +37,11 @@ pub async fn auth_callback_handler(
             userinfo.sub,
             userinfo.name.unwrap_or_default(),
             userinfo.email.unwrap_or_default(),
+            userinfo.picture,
             token_info.refresh_token,
         );
-        profile.save(db_pool).await.unwrap_or_default();
-        return Json(json!({ "google": profile }));
+        let res = profile.save(db_pool).await.unwrap();
+        return Json(json!({ "google": res }));
     }
     Json(json!({"error":"failed to get tokens"}))
 }
