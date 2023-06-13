@@ -8,6 +8,7 @@ use axum::{
 use oauth2::{AuthorizationCode, CsrfToken};
 use serde_json::json;
 use sqlx::{Pool, Postgres};
+use tracing::warn;
 
 use crate::{
     errors::ServerError,
@@ -38,12 +39,23 @@ pub async fn login_callback_handler(
     let userinfo = keycloak_auth
         .get_user_info(token_info.clone().access_token)
         .await?;
+
+    let broker_token = keycloak_auth
+        .get_idp_token(
+            token_info.clone().access_token,
+            KeyCloakIdp::Google.as_str(),
+        )
+        .await?;
+    warn!("broker_token: {:?}", broker_token);
+
     let google_tokens = keycloak_auth
         .token_exchange(
             token_info.clone().access_token,
             KeyCloakIdp::Google.as_str(),
         )
         .await?;
+    warn!("google_tokens: {:?}", google_tokens);
+
     let google_info = google_auth
         .get_user_info(google_tokens.access_token)
         .await?;

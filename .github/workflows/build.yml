@@ -34,7 +34,7 @@ jobs:
       - name: Check code format
         run: cargo fmt -- --check
       - name: Start dependent services
-        run: sh ./dependent-services-up.sh
+        run: sh ./infrastructure/services-up.sh
       - name: Check the package for errors
         run: cargo check --all
       - name: Lint rust sources

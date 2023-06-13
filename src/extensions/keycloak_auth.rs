@@ -108,6 +108,24 @@ impl KeycloakAuth {
             access_token: res.access_token().secret().to_string(),
         })
     }
+    pub async fn get_idp_token(
+        &self,
+        access_token: String,
+        requested_issuer: &str,
+    ) -> Result<TokenInfo, ServerError> {
+        let token_url = get_url_with_issuer(
+            &self.config.issuer_url,
+            &format!("/broker/{requested_issuer}/token"),
+        );
+        let response = Client::new()
+            .get(token_url)
+            .bearer_auth(access_token)
+            .header(CONTENT_TYPE, HeaderValue::from_static("application/json"))
+            .send()
+            .await?;
+        let res = response.text().await?;
+        Ok(from_str(&res)?)
+    }
     pub async fn token_exchange(
         &self,
         access_token: String,
