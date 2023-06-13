@@ -1,3 +1,4 @@
 /target
 .env
 realm.json
+sqlx-data.json
