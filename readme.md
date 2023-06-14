@@ -11,41 +11,24 @@
   - http://localhost:8000/google/auth-callback
   - http://localhost:8080/realms/axum-koans/broker/google/endpoint
 
-2. add google client configuration in keycloak realm.json
-
-```json
-// replace `clientSecret` and `clientId` with your own google oauth client
-"identityProviders": [
-    {
-      "alias": "google",
-      "internalId": "955ac868-8fbf-44ad-80e5-41c5e9d44953",
-      "providerId": "google",
-      "enabled": true,
-      "updateProfileFirstLoginMode": "on",
-      "trustEmail": false,
-      "storeToken": false,
-      "addReadTokenRoleOnCreate": false,
-      "authenticateByDefault": false,
-      "linkOnly": false,
-      "firstBrokerLoginFlowAlias": "first broker login",
-      "config": {
-        "offlineAccess": "true",
-        "userIp": "false",
-        "clientSecret": "**********",
-        "clientId": "**********.apps.googleusercontent.com"
-      }
-    }
-  ]
-```
+2. add google client configuration in below `.env` file
 
 3. init application
 
 ```shell
-# keycloak and postgres
-docker-compose up
-# database migration
+# Optional, for precommit initialization
+sh ./init.sh
+
+# configure initialization, and put your google client configuration in
+cp .env.dev .env
+
+# init keycloak and postgres
+# Details in [infrastructure](/infrastructure/readme.md)
+sh ./infrastructure/keycloak/init.sh
+
+# Optional, database migration, already migrated in above steps
 # install database migrations tool sqx
-cargo install sqlx-cli --no-default-features --features native-tls,postgres --locked
+# cargo install sqlx-cli --no-default-features --features native-tls,postgres --locked
 sqlx migrate run
 ```
 
@@ -55,8 +38,8 @@ sqlx migrate run
 
 - google-oauth
 
-http://localhost:8000/google/auth
+  http://localhost:8000/google/auth
 
 - keycloak-google-oauth (token-exchange)
 
-http://localhost:8000/keycloak/login (use google login method)
+  http://localhost:8000/keycloak/login (use google login method)
