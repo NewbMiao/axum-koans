@@ -12,7 +12,7 @@ workspace=$(cd "$(dirname "$0")" && pwd -P)
         echo "sqlx-cli already installed"
     fi
     cd ../
-    sqlx migrate run
+    sqlx migrate run --database-url "postgresql://axum-koans:axum-koans-sec@localhost:15432/axum-koans"
     echo "postgres migration done"
     cd "$workspace"
 }

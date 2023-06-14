@@ -4,3 +4,6 @@
 
 **/*.tfstate
 **/*.tfstate.*
+
+google-cloud-sdk
+**/*.tar.gz
