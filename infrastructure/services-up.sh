@@ -14,5 +14,4 @@ workspace=$(cd "$(dirname "$0")" && pwd -P)
     cd ../
     sqlx migrate run --database-url "postgresql://axum-koans:axum-koans-sec@localhost:15432/axum-koans"
     echo "postgres migration done"
-    cd "$workspace"
 }
