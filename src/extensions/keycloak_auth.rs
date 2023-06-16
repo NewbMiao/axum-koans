@@ -1,5 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
+use crate::{config::OauthClientConfig, errors::ServerError};
 use hyper::{header::CONTENT_TYPE, http::HeaderValue};
 use oauth2::{
     basic::BasicClient, reqwest::async_http_client, url::Url, AuthUrl, AuthorizationCode, ClientId,
@@ -10,8 +11,7 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 use tokio::sync::Mutex;
-
-use crate::{config::OauthClientConfig, errors::ServerError};
+use tracing::warn;
 
 use super::KeyCloakIdp;
 
@@ -124,6 +124,7 @@ impl KeycloakAuth {
             .send()
             .await?;
         let res = response.text().await?;
+        warn!("get broker token response: {}", res);
         Ok(from_str(&res)?)
     }
     pub async fn token_exchange(

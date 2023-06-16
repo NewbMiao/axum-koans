@@ -5,6 +5,26 @@ networks:
     driver: bridge
 
 services:
+  axum_koans:
+    profiles:
+      - app
+    depends_on:
+      - keycloak
+      - postgresql
+    env_file:
+      - ../.env.dev
+      - ../.env
+    environment:
+      DATABASE_URL: "postgresql://axum-koans:axum-koans-sec@database:5432/axum-koans"
+    networks:
+      app:
+        aliases:
+          - axum_koans
+    build:
+      context: ../
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
   keycloak_database:
     image: bitnami/postgresql:15.3.0
     networks:

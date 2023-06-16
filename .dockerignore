@@ -1,0 +1,9 @@
+# Ignore all Rust's build artifacts
+target/
+Cargo.lock
+
+# Ignore other unnecessary files
+.git
+.idea
+.vscode
+.github

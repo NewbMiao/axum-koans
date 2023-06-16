@@ -1,0 +1,131 @@
+{
+  "db": "PostgreSQL",
+  "0296ae9f18525553fd4debcd7a225ec6d525999476125de53d1e86970ecd02b9": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "account_id",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "username",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "email",
+          "ordinal": 3,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "picture",
+          "ordinal": 4,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "refresh_token",
+          "ordinal": 5,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "created_date",
+          "ordinal": 6,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "updated_date",
+          "ordinal": 7,
+          "type_info": "Timestamptz"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Varchar",
+          "Varchar",
+          "Varchar",
+          "Varchar",
+          "Varchar"
+        ]
+      }
+    },
+    "query": "\n            INSERT INTO profiles (account_id, username, email, picture, refresh_token)\n            VALUES ($1, $2, $3, $4, $5)\n            ON CONFLICT (account_id) DO UPDATE SET\n                account_id = EXCLUDED.account_id,\n                username = EXCLUDED.username,\n                email = EXCLUDED.email,\n                picture = EXCLUDED.picture,\n                refresh_token = EXCLUDED.refresh_token\n            RETURNING *\n            "
+  },
+  "c160b04e9d4649cfe32cb79f2049886732ce1fc7b78b0d73ba9f2fc400736544": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "account_id",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "username",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "email",
+          "ordinal": 3,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "picture",
+          "ordinal": 4,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "refresh_token",
+          "ordinal": 5,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "created_date",
+          "ordinal": 6,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "updated_date",
+          "ordinal": 7,
+          "type_info": "Timestamptz"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT id, account_id, username, email, picture, refresh_token, created_date, updated_date FROM profiles WHERE account_id = $1"
+  }
+}
