@@ -59,6 +59,5 @@ pub async fn login_callback_handler(
     let google_info = google_auth
         .get_user_info(google_tokens.access_token)
         .await?;
-
     Ok(Json(json!({ "google": google_info, "keycloak":userinfo })))
 }

@@ -34,7 +34,7 @@ resource "keycloak_oidc_google_identity_provider" "google" {
   client_secret = var.google_client_secret
   trust_email   = true
   hosted_domain = "*"
-  sync_mode     = "FORCE" # force sync mode to user for all mappers attached to this idp
+  sync_mode     = "IMPORT"
   provider_id   = "google"
 
   default_scopes = "openid profile email"

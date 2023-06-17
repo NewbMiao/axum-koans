@@ -18,8 +18,8 @@
 3. init application
 
 ```shell
-# [Optional], for precommit initialization
-sh ./precommit-init.sh
+# [Optional], for devtool initialization
+sh ./devtool-init.sh
 
 # configure initialization, and put your google client configuration in
 cp .env.dev .env
@@ -28,10 +28,11 @@ cp .env.dev .env
 # Details in [infrastructure](/infrastructure/readme.md)
 sh ./infrastructure/keycloak/init.sh
 
-# [Optional], database migration, already migrated in above steps
-# install database migrations tool sqx
-# cargo install sqlx-cli --no-default-features --features native-tls,postgres --locked
-sqlx migrate run
+# start keycloak and postgres
+sh ./infrastructure/services-up.sh
+
+# start app
+cargo run
 ```
 
 ## features

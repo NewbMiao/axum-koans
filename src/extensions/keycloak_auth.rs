@@ -38,13 +38,13 @@ pub struct TokenExchangeResponse {
 }
 #[derive(Deserialize, Serialize, Debug)]
 pub struct UserInfo {
-    sub: String,
-    email_verified: bool,
-    name: String,
-    preferred_username: String,
-    given_name: String,
-    family_name: String,
-    email: String,
+    pub sub: String,
+    pub email_verified: bool,
+    pub name: String,
+    pub preferred_username: String,
+    pub given_name: String,
+    pub family_name: String,
+    pub email: String,
 }
 
 impl KeycloakAuth {
@@ -80,6 +80,8 @@ impl KeycloakAuth {
             .authorize_url(CsrfToken::new_random)
             .add_scope(Scope::new("openid".to_string()))
             .add_extra_param("kc_idp_hint", kc_idp_hint.as_str()) // use google directly
+            .add_extra_param("prompt", "consent")
+            .add_extra_param("access_type", "offline")
             .set_pkce_challenge(pkce_challenge.0.clone())
             .url();
         let csrf_token_key = csrf_token.secret().to_string();

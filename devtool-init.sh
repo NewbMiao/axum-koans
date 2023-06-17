@@ -17,10 +17,17 @@ else
     echo "rustup already installed"
 fi
 
+if ! command -v cargo-binstall &>/dev/null; then
+    curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+else
+    echo "cargo-binstall already installed"
+fi
+
 # Check if nextest is installed
 if ! command -v cargo-nextest &>/dev/null; then
     echo "cargo-nextest not found. Installing..."
-    cargo install cargo-nextest --locked
+    # cargo install cargo-nextest --locked
+    cargo binstall -y cargo-nextest
 else
     echo "cargo-nextest already installed"
 fi
@@ -28,7 +35,9 @@ fi
 # Check if cargo-deny is installed
 if ! command -v cargo-deny &>/dev/null; then
     echo "cargo-deny not found. Installing..."
-    cargo install cargo-deny --locked
+    # cargo install cargo-deny --locked
+    cargo binstall -y cargo-deny
+
 else
     echo "cargo-deny already installed"
 fi
@@ -36,7 +45,8 @@ fi
 # Check if typos is installed
 if ! command -v typos &>/dev/null; then
     echo "typos not found. Installing..."
-    cargo install typos-cli
+    cargo binstall -y typos-cli
+    # cargo install typos-cli
 else
     echo "typos already installed"
 fi
@@ -47,6 +57,15 @@ if ! command -v sqlx &>/dev/null; then
     cargo install sqlx-cli --no-default-features --features native-tls,postgres --locked
 else
     echo "sqlx-cli already installed"
+fi
+
+# Check if sqlx-cli is installed, rerun when src code changed: `cargo watch -c -w src -x run`
+if ! command -v cargo-watch &>/dev/null; then
+    echo "cargo-watch not found. Installing..."
+    # cargo install cargo-watch
+    cargo binstall -y cargo-watch
+else
+    echo "cargo-watch already installed"
 fi
 
 # Install pre-commit hooks
