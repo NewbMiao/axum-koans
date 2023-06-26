@@ -3,9 +3,9 @@ use std::{collections::HashMap, sync::Arc};
 use crate::{config::OauthClientConfig, errors::ServerError};
 use hyper::{header::CONTENT_TYPE, http::HeaderValue};
 use oauth2::{
-    basic::BasicClient, reqwest::async_http_client, url::Url, AuthUrl, AuthorizationCode, ClientId,
-    ClientSecret, CsrfToken, PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, Scope,
-    TokenResponse, TokenUrl,
+    basic::BasicClient, reqwest::async_http_client, url::Url, AccessToken, AuthUrl,
+    AuthorizationCode, ClientId, ClientSecret, CsrfToken, IntrospectionUrl, PkceCodeChallenge,
+    PkceCodeVerifier, RedirectUrl, Scope, TokenIntrospectionResponse, TokenResponse, TokenUrl,
 };
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -36,7 +36,7 @@ pub struct TokenExchangeResponse {
     // not_before_policy: u64,
     // refresh_expires_in: u64,
 }
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Default)]
 pub struct UserInfo {
     pub sub: String,
     pub email_verified: bool,
@@ -63,9 +63,15 @@ impl KeycloakAuth {
             "/protocol/openid-connect/auth",
         ))
         .unwrap();
+        let introspection_url = IntrospectionUrl::new(get_url_with_issuer(
+            &config.issuer_url,
+            "/protocol/openid-connect/token/introspect",
+        ))
+        .unwrap();
         let redirect_url = RedirectUrl::new(config.redirect_url).unwrap();
         let client = BasicClient::new(client_id, Some(client_secret), auth_url, Some(token_url))
-            .set_redirect_uri(redirect_url);
+            .set_redirect_uri(redirect_url)
+            .set_introspection_uri(introspection_url);
 
         Self {
             config: config_clone,
@@ -167,6 +173,25 @@ impl KeycloakAuth {
             .await?;
 
         Ok(from_str(&res.text().await?)?)
+    }
+
+    pub async fn introspect_token(&self, token: String) -> Result<UserInfo, ServerError> {
+        let res = self
+            .client
+            .introspect(&AccessToken::new(token))
+            .unwrap()
+            .request_async(async_http_client)
+            .await?;
+
+        if !res.active() {
+            return Err(ServerError::InvalidBearerToken);
+        }
+        // just demonstrate how to introspect token
+        Ok(UserInfo {
+            sub: res.sub().unwrap().to_string(),
+            preferred_username: res.username().unwrap().to_string(),
+            ..UserInfo::default()
+        })
     }
 }
 

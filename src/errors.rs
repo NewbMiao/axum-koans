@@ -25,14 +25,20 @@ pub enum ServerError {
     RequestError(#[from] reqwest::Error),
     #[error("Parse json error: {0}")]
     ParseJsonError(#[from] serde_json::Error),
+    #[error("Invalid request token")]
+    InvalidBearerToken,
 }
 
 impl IntoResponse for ServerError {
     fn into_response(self) -> Response {
+        let status_code = match self {
+            ServerError::InvalidBearerToken => StatusCode::UNAUTHORIZED,
+            _ => StatusCode::INTERNAL_SERVER_ERROR,
+        };
         let body = self.to_string();
 
         (
-            StatusCode::INTERNAL_SERVER_ERROR,
+            status_code,
             Json(json!({
                 "error": body,
             })),

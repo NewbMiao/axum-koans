@@ -7,6 +7,7 @@ use axum_koans::{
     handlers::{
         auth::{auth_callback_handler, auth_handler},
         login::{login_callback_handler, login_handler},
+        user::user_handler,
     },
     middlewares::log,
 };
@@ -39,6 +40,7 @@ async fn main() -> Result<(), ServerError> {
             Router::new()
                 .route("/login", get(login_handler))
                 .route("/login-callback", get(login_callback_handler))
+                .route("/user", get(user_handler))
                 .layer(
                     ServiceBuilder::new()
                         .layer(Extension(Arc::new(KeycloakAuth::new(config.keycloak))))

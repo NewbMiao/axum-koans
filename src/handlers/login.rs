@@ -36,6 +36,8 @@ pub async fn login_callback_handler(
             CsrfToken::new(query.state),
         )
         .await?;
+    warn!("keycloak_token: {:?}", token_info);
+
     let userinfo = keycloak_auth
         .get_user_info(token_info.clone().access_token)
         .await?;

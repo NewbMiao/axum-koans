@@ -13,7 +13,7 @@ repos:
       - id: check-symlinks
       - id: check-yaml
       - id: end-of-file-fixer
-        exclude: '\.(md|csv|txt|xlsx)'
+        exclude: '\.(md|csv|txt|xlsx|json)'
       - id: mixed-line-ending
         exclude: '\.(md|csv|txt|xlsx)'
       - id: trailing-whitespace

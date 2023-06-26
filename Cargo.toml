@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-axum = { version = "0.6.18" }
+axum = { version = "0.6.18", features = ["headers"] }
 chrono = { version = "0.4.24", features = ["serde"] }
 dotenvy = "0.15.7"
 hyper = { version = "0.14", features = ["full"] }
@@ -27,3 +27,8 @@ tower-http = { version = "0.4.0", features = ["cors", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 openssl = { version = "0.10.54", features = ["vendored"] }
+
+[dev-dependencies]
+openidconnect = "3.2.0"
+jwtk = "0.2.4"
+base64 = "0.21.2"
