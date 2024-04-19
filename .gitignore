@@ -2,3 +2,4 @@
 .env
 realm.json
 recipe.json
+.DS_Store

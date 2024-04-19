@@ -2,8 +2,8 @@ use std::{collections::HashMap, sync::Arc};
 
 use hyper::{header::CONTENT_TYPE, http::HeaderValue};
 use oauth2::{
-    basic::BasicClient, reqwest::async_http_client, url::Url, AuthUrl, AuthorizationCode, ClientId,
-    ClientSecret, CsrfToken, PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, RevocationUrl,
+    basic::BasicClient, url::Url, AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken,
+    EndpointNotSet, EndpointSet, PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, RevocationUrl,
     Scope, TokenResponse, TokenUrl,
 };
 use reqwest::Client;
@@ -14,7 +14,7 @@ use tokio::sync::Mutex;
 use crate::{config::OauthClientConfig, errors::ServerError};
 
 pub struct GoogleAuth {
-    client: BasicClient,
+    client: BasicClient<EndpointSet, EndpointNotSet, EndpointNotSet, EndpointSet, EndpointSet>,
     csrf_pkces: Arc<Mutex<HashMap<String, PkceCodeVerifier>>>,
 }
 #[derive(Deserialize, Serialize, Clone, Debug)]
@@ -39,14 +39,12 @@ impl GoogleAuth {
         let revocation_url =
             RevocationUrl::new("https://oauth2.googleapis.com/revoke".to_string()).unwrap();
         let redirect_url = RedirectUrl::new(config.redirect_url).unwrap();
-        let client = BasicClient::new(
-            ClientId::new(config.client_id),
-            Some(ClientSecret::new(config.client_secret)),
-            auth_url,
-            Some(token_url),
-        )
-        .set_redirect_uri(redirect_url)
-        .set_revocation_uri(revocation_url);
+        let client = BasicClient::new(ClientId::new(config.client_id))
+            .set_client_secret(ClientSecret::new(config.client_secret))
+            .set_auth_uri(auth_url)
+            .set_token_uri(token_url)
+            .set_redirect_uri(redirect_url)
+            .set_revocation_url(revocation_url);
 
         Self {
             client,
@@ -90,7 +88,12 @@ impl GoogleAuth {
         if let Some(pkce_verifier) = hmap.remove(&csrf_token.secret().to_string()) {
             res = res.set_pkce_verifier(PkceCodeVerifier::new(pkce_verifier.secret().to_string()))
         }
-        let res = res.request_async(async_http_client).await?;
+        let http_client: Client = reqwest::ClientBuilder::new()
+            // Following redirects opens the client up to SSRF vulnerabilities.
+            .redirect(reqwest::redirect::Policy::none())
+            .build()
+            .expect("Client should build");
+        let res = res.request_async(&http_client).await?;
 
         Ok(TokenInfo {
             refresh_token: res.refresh_token().unwrap().secret().to_string(),

@@ -1,11 +1,10 @@
 use std::sync::Arc;
 
 use crate::{errors::ServerError, extensions::keycloak_auth::KeycloakAuth};
-use axum::{
-    extract::TypedHeader,
+use axum::{response::IntoResponse, Extension, Json};
+use axum_extra::{
     headers::{authorization::Bearer, Authorization},
-    response::IntoResponse,
-    Extension, Json,
+    TypedHeader,
 };
 
 pub async fn user_handler(
@@ -23,6 +22,7 @@ mod test {
     use std::sync::Arc;
 
     use axum::{routing::get, Extension, Router};
+    use http_body_util::Empty;
     use hyper::{http::HeaderValue, Request, StatusCode};
     use tower::{ServiceBuilder, ServiceExt};
 
@@ -40,7 +40,7 @@ mod test {
                 "Authorization",
                 HeaderValue::from_static("Bearer test.test.test"),
             )
-            .body(hyper::Body::empty())
+            .body(Empty::new())
             .unwrap();
 
         let config = Config::from_env()?;

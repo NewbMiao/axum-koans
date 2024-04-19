@@ -3,9 +3,9 @@ use std::{collections::HashMap, sync::Arc};
 use crate::{config::OauthClientConfig, errors::ServerError};
 use hyper::{header::CONTENT_TYPE, http::HeaderValue};
 use oauth2::{
-    basic::BasicClient, reqwest::async_http_client, url::Url, AccessToken, AuthUrl,
-    AuthorizationCode, ClientId, ClientSecret, CsrfToken, IntrospectionUrl, PkceCodeChallenge,
-    PkceCodeVerifier, RedirectUrl, Scope, TokenIntrospectionResponse, TokenResponse, TokenUrl,
+    basic::BasicClient, url::Url, AccessToken, AuthUrl, AuthorizationCode, ClientId, ClientSecret,
+    CsrfToken, EndpointNotSet, EndpointSet, IntrospectionUrl, PkceCodeChallenge, PkceCodeVerifier,
+    RedirectUrl, Scope, TokenIntrospectionResponse, TokenResponse, TokenUrl,
 };
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -17,7 +17,7 @@ use super::KeyCloakIdp;
 
 pub struct KeycloakAuth {
     config: OauthClientConfig,
-    client: BasicClient,
+    client: BasicClient<EndpointSet, EndpointNotSet, EndpointSet, EndpointNotSet, EndpointSet>,
 
     csrf_pkces: Arc<Mutex<HashMap<String, PkceCodeVerifier>>>,
 }
@@ -69,9 +69,12 @@ impl KeycloakAuth {
         ))
         .unwrap();
         let redirect_url = RedirectUrl::new(config.redirect_url).unwrap();
-        let client = BasicClient::new(client_id, Some(client_secret), auth_url, Some(token_url))
+        let client = BasicClient::new(client_id)
+            .set_client_secret(client_secret)
+            .set_auth_uri(auth_url)
+            .set_token_uri(token_url)
             .set_redirect_uri(redirect_url)
-            .set_introspection_uri(introspection_url);
+            .set_introspection_url(introspection_url);
 
         Self {
             config: config_clone,
@@ -109,8 +112,13 @@ impl KeycloakAuth {
         if let Some(pkce_verifier) = hmap.remove(&csrf_token.secret().to_string()) {
             res = res.set_pkce_verifier(PkceCodeVerifier::new(pkce_verifier.secret().to_string()))
         }
+        let http_client: Client = reqwest::ClientBuilder::new()
+            // Following redirects opens the client up to SSRF vulnerabilities.
+            .redirect(reqwest::redirect::Policy::none())
+            .build()
+            .expect("Client should build");
 
-        let res = res.request_async(async_http_client).await?;
+        let res = res.request_async(&http_client).await?;
         Ok(TokenInfo {
             refresh_token: res.refresh_token().unwrap().secret().to_string(),
             access_token: res.access_token().secret().to_string(),
@@ -176,11 +184,15 @@ impl KeycloakAuth {
     }
 
     pub async fn introspect_token(&self, token: String) -> Result<UserInfo, ServerError> {
+        let http_client: Client = reqwest::ClientBuilder::new()
+            // Following redirects opens the client up to SSRF vulnerabilities.
+            .redirect(reqwest::redirect::Policy::none())
+            .build()
+            .expect("Client should build");
         let res = self
             .client
             .introspect(&AccessToken::new(token))
-            .unwrap()
-            .request_async(async_http_client)
+            .request_async(&http_client)
             .await?;
 
         if !res.active() {

@@ -3,7 +3,9 @@ use axum::{
     Json,
 };
 use hyper::StatusCode;
-use oauth2::{basic::BasicErrorResponseType, RequestTokenError, StandardErrorResponse};
+use oauth2::{
+    basic::BasicErrorResponseType, HttpClientError, RequestTokenError, StandardErrorResponse,
+};
 use serde_json::json;
 use sqlx;
 use thiserror::Error;
@@ -17,7 +19,7 @@ pub enum ServerError {
     RequestTokenError(
         #[from]
         RequestTokenError<
-            oauth2::reqwest::Error<reqwest::Error>,
+            HttpClientError<reqwest::Error>,
             StandardErrorResponse<BasicErrorResponseType>,
         >,
     ),

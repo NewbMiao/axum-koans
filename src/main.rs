@@ -11,7 +11,8 @@ use axum_koans::{
     },
     middlewares::log,
 };
-use std::{net::SocketAddr, sync::Arc, time::Duration};
+
+use std::{sync::Arc, time::Duration};
 use tower::ServiceBuilder;
 use tower_http::{
     classify::ServerErrorsFailureClass,
@@ -74,9 +75,8 @@ async fn main() -> Result<(), ServerError> {
         )
         .layer(middleware::from_fn(log));
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 8000));
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
+    axum::serve(listener, app.into_make_service())
         .await
         .unwrap();
     Ok(())

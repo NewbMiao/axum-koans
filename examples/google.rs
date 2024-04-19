@@ -1,11 +1,11 @@
 use dotenvy::dotenv;
-use oauth2::{basic::BasicClient, revocation::StandardRevocableToken, TokenResponse};
+use oauth2::{basic::BasicClient, TokenResponse};
 // Alternatively, this can be oauth2::curl::http_client or a custom.
-use oauth2::reqwest::http_client;
 use oauth2::{
     AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge, RedirectUrl,
     RevocationUrl, Scope, TokenUrl,
 };
+use reqwest::blocking::Client;
 use reqwest::Url;
 use std::env;
 use std::io::{BufRead, BufReader, Write};
@@ -31,22 +31,20 @@ fn main() {
         .expect("Invalid token endpoint URL");
 
     // Set up the config for the Google OAuth2 process.
-    let client = BasicClient::new(
-        google_client_id,
-        Some(google_client_secret),
-        auth_url,
-        Some(token_url),
-    )
-    // This example will be running its own server at localhost:8000.
-    // See below for the server implementation.
-    .set_redirect_uri(
-        RedirectUrl::new("http://localhost:8000".to_string()).expect("Invalid redirect URL"),
-    )
-    // Google supports OAuth 2.0 Token Revocation (RFC-7009)
-    .set_revocation_uri(
-        RevocationUrl::new("https://oauth2.googleapis.com/revoke".to_string())
-            .expect("Invalid revocation endpoint URL"),
-    );
+    let client = BasicClient::new(google_client_id)
+        .set_client_secret(google_client_secret)
+        .set_auth_uri(auth_url)
+        .set_token_uri(token_url)
+        // This example will be running its own server at localhost:8000.
+        // See below for the server implementation.
+        .set_redirect_uri(
+            RedirectUrl::new("http://localhost:8000".to_string()).expect("Invalid redirect URL"),
+        )
+        // Google supports OAuth 2.0 Token Revocation (RFC-7009)
+        .set_revocation_url(
+            RevocationUrl::new("https://oauth2.googleapis.com/revoke".to_string())
+                .expect("Invalid revocation endpoint URL"),
+        );
 
     // Google supports Proof Key for Code Exchange (PKCE - https://oauth.net/2/pkce/).
     // Create a PKCE code verifier and SHA-256 encode it as a code challenge.
@@ -121,11 +119,12 @@ fn main() {
             csrf_state.secret()
         );
 
+        let http_client: Client = Client::new();
         // Exchange the code with a token.
         let token_response = client
             .exchange_code(code)
             .set_pkce_verifier(pkce_code_verifier)
-            .request(http_client);
+            .request(&http_client);
 
         println!(
             "Google returned the following token:\n{:?}\n",
@@ -134,7 +133,7 @@ fn main() {
 
         // Revoke the obtained token
         let token_response = token_response.unwrap();
-        let token_to_revoke: StandardRevocableToken = match token_response.refresh_token() {
+        let token_to_revoke = match token_response.refresh_token() {
             Some(token) => token.into(),
             None => token_response.access_token().into(),
         };
@@ -142,7 +141,7 @@ fn main() {
         client
             .revoke_token(token_to_revoke)
             .unwrap()
-            .request(http_client)
+            .request(&http_client)
             .expect("Failed to revoke token");
     }
 }

@@ -1,15 +1,13 @@
-use axum::body::Bytes;
-use axum::http::{Request, Response, StatusCode};
+use axum::body::{Body, Bytes};
+use axum::extract::Request;
+use axum::http::StatusCode;
 use axum::middleware::Next;
-use axum::response::IntoResponse;
-use hyper::Body;
+use axum::response::{IntoResponse, Response};
+use http_body_util::BodyExt;
 use tracing::info;
 
-pub async fn log(
-    req: Request<axum::body::Body>,
-    next: Next<axum::body::Body>,
-) -> Result<impl IntoResponse, (StatusCode, String)> {
-    let mut no_log = false;
+pub async fn log(req: Request, next: Next) -> Result<impl IntoResponse, (StatusCode, String)> {
+    let mut do_log = true;
 
     let path = &req.uri().path().to_string();
 
@@ -17,7 +15,16 @@ pub async fn log(
     let extension_skip = vec![".js", ".html", ".css", ".png", ".jpeg"];
     for ext in extension_skip {
         if path.ends_with(ext) {
-            no_log = true;
+            do_log = false;
+            break;
+        }
+    }
+
+    // Want to skip logging these paths
+    let skip_paths = vec!["/example/path"];
+    for skip_path in skip_paths {
+        if path.ends_with(skip_path) {
+            do_log = false;
             break;
         }
     }
@@ -25,15 +32,15 @@ pub async fn log(
     let (req_parts, req_body) = req.into_parts();
 
     // Print request
-    let bytes = buffer_and_print("Request", path, req_body, no_log).await?;
-    let req = Request::from_parts(req_parts, hyper::Body::from(bytes));
+    let bytes = buffer_and_print("request", path, req_body, do_log).await?;
+    let req = Request::from_parts(req_parts, Body::from(bytes));
 
     let res = next.run(req).await;
 
     let (mut res_parts, res_body) = res.into_parts();
 
     // Print response
-    let bytes = buffer_and_print("Response", path, res_body, no_log).await?;
+    let bytes = buffer_and_print("response", path, res_body, do_log).await?;
 
     // When your encoding is chunked there can be problems without removing the header
     res_parts.headers.remove("transfer-encoding");
@@ -42,7 +49,6 @@ pub async fn log(
 
     Ok(res)
 }
-
 // Consumes body and prints
 async fn buffer_and_print<B>(
     direction: &str,
@@ -54,8 +60,8 @@ where
     B: axum::body::HttpBody<Data = Bytes>,
     B::Error: std::fmt::Display,
 {
-    let bytes = match hyper::body::to_bytes(body).await {
-        Ok(bytes) => bytes,
+    let bytes = match body.collect().await {
+        Ok(bytes) => bytes.to_bytes(),
         Err(err) => {
             return Err((
                 StatusCode::BAD_REQUEST,
